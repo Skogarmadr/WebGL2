@@ -1,0 +1,100 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 13.12.2013 09:07:17
+
+newmtl _ModelsFaceTexture0
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_eyeL_hi.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_eyeL_hi.jpg
+
+newmtl _ModelsFaceTexture1
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_eyeR_hi.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_eyeR_hi.jpg
+
+newmtl _ModelsFaceTexture2
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_skin_hi.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_skin_hi.jpg
+
+newmtl _ModelsFaceTexture3
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_sock.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_sock.jpg
+
+newmtl _ModelsFaceTexture4
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_teethLower.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_teethLower.jpg
+
+newmtl _ModelsFaceTexture5
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_teethUpper.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_teethUpper.jpg
+
+newmtl _ModelsFaceTexture6
+	Ns 20.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.70000 0.70000 0.70000
+	Ks 0.00000 0.00000 0.00000
+	Ke 0.00000 0.00000 0.00000
+	map_Ka C:\Users\Jason\Downloads\ModelsFace\ModelsFace_tongue.jpg
+	map_Kd C:\Users\Jason\Downloads\ModelsFace\ModelsFace_tongue.jpg

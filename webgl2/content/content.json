@@ -1,0 +1,28 @@
+{
+    "chapters":[
+      {
+        "number":3,
+        "image":"ch03.png",
+        "exercices":[
+          {
+            "type":"eg",
+            "number":1,
+            "title":"Un simple triangle"
+          },
+          {
+            "type":"eg",
+            "number":2,
+            "title":"Un simple triangle avec des indices"
+          }]
+      },
+      {
+        "number":4,
+        "image":"ch04.png",
+        "exercices":[
+          {
+            "type":"eg",
+            "number":1,
+            "title":"TODO"
+          }]
+      }]
+  }

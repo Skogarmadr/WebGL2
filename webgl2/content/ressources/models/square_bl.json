@@ -1,0 +1,44 @@
+{
+
+    "metadata" :
+    {
+        "formatVersion" : 3.1,
+        "sourceFile"    : "Untitled.obj",
+        "generatedBy"   : "OBJConverter",
+        "vertices"      : 4,
+        "faces"         : 2,
+        "normals"       : 1,
+        "colors"        : 0,
+        "uvs"           : 0,
+        "materials"     : 1
+    },
+
+    "scale" : 1.000000,
+
+    "materials": [	{
+	"DbgColor" : 15658734,
+	"DbgIndex" : 0,
+	"DbgName" : "None",
+	"colorAmbient" : [0.0, 0.0, 0.0],
+	"colorDiffuse" : [0.8, 0.8, 0.8],
+	"colorSpecular" : [0.8, 0.8, 0.8],
+	"illumination" : 2,
+	"specularCoef" : 0.0,
+	"transparency" : 1.0
+	}],
+
+    "vertices": [0.997846,0.001665,1.002820,-1.002154,0.001665,1.002820,0.997846,0.001665,-0.997181,-1.002154,0.001665,-0.997181],
+
+    "morphTargets": [],
+
+    "morphColors": [],
+
+    "normals": [0,1,0],
+
+    "colors": [],
+
+    "uvs": [[]],
+
+    "indices": [1,0,3,0,2,3]
+
+}
