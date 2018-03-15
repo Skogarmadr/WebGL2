@@ -61,7 +61,7 @@ var vertexColorBuffer = null;
 //Buffer that will contain the indexes
 var indexBuffer = null;
 
-//Size of the indexes for the current 
+//Size of the indexes for the current
 var indexLength = -1;
 
 //mat4 for the projection matrix
