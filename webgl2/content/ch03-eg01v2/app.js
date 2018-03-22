@@ -141,11 +141,15 @@ function initBuffers() {
   //Binding the vertexArray as the current vertex array
   glContext.bindVertexArray(vertexArray);
 
+  //Setting the values for the constants of pMatrix and mvMatrix
+  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
+  glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
+
   //Enabling the position location to be used to transfer vertex arrays
   glContext.enableVertexAttribArray(vertexPosLocation);
 
   //Vertices of positions
-  var vertices = new Float32Array([
+  const vertices = new Float32Array([
     -0.6,
     -0.5,
     0.0,
@@ -179,7 +183,7 @@ function initBuffers() {
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
   //Colors
-  var colors = new Float32Array([
+  const colors = new Float32Array([
     1.0,
     0.0,
     0.0,
@@ -214,16 +218,27 @@ function initBuffers() {
   //Reset ARRAY_BUFFER
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
-  var indices = new Uint16Array([0, 1, 2]);
+  //Declaration of the indexes
+  const indices = new Uint16Array([0, 1, 2]);
+
+  //We must keep the index count of our element array buffer
   indexLength = indices.length;
+
+  //We create the index buffer
   indexBuffer = glContext.createBuffer();
+
+  //We bind the index buffer to the element_array_buffer slot
   glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  //We transfer the index data to the index buffer
   glContext.bufferData(
     glContext.ELEMENT_ARRAY_BUFFER,
     indices,
     glContext.STATIC_DRAW
   );
-  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
+
+  /* Notice that we don't remove the ELEMENT_ARRAY_BUFFER attribution before unsetting the vertexarray */
+
   //Reset the selected vertex Array
   glContext.bindVertexArray(null);
 }
@@ -243,14 +258,8 @@ function draw() {
   //Clears the canvas with the clear color
   glContext.clear(glContext.COLOR_BUFFER_BIT);
 
-  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
-  glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
-
   //Binding the vertexArray as the current vertex array
   glContext.bindVertexArray(vertexArray);
-
-  //We set the indexes in the buffers
-  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
   //Draws the triangle. DrawArraysInstanced allows to draw multiple instances
   glContext.drawElements(
     glContext.TRIANGLES,
@@ -258,8 +267,6 @@ function draw() {
     glContext.UNSIGNED_SHORT,
     0
   );
-  //Unbinding of the Element_array_buffer
-  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
   //Unbinding of the vertex array
   glContext.bindVertexArray(null);
   //Request the drawing of the next scene (optional for this sample)
@@ -270,10 +277,10 @@ function draw() {
  * Destructor of the program. Unused in this case buy always prepare a way to destroy your objects
  */
 function destroy() {
-  glContext.deleteBuffer(vertexPosBuffer);
-  glContext.deleteBuffer(vertexColorBuffer);
-  glContext.deleteProgram(program);
-  glContext.deleteVertexArray(vertexArray);
+  glContext.devareBuffer(vertexPosBuffer);
+  glContext.devareBuffer(vertexColorBuffer);
+  glContext.devareProgram(program);
+  glContext.devareVertexArray(vertexArray);
 }
 
 function initWebGL() {
