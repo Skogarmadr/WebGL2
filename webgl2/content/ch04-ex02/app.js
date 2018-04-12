@@ -68,84 +68,6 @@ var PMatrixLocation = null; //Reference to the PMatrix Location within the shade
 var MVMatrixLocation = null; //Reference to the MVMatrix Location within the shader
 
 /* ***************************************** *\
-			Utility functions
-\ *****************************************  */
-/**
- * Creates and compiles a shader based on his code and type
- * @param {WebGL2RenderingContext} glContext - The WebGL context
- * @param {string} source - The source of the shader
- * @param {GLenum} type - The type of shader to compile
- * @returns {WebGLShader} - The compiled shader
- */
-function createShader(glContext, source, type) {
-	//Creates the shader
-	var shader = glContext.createShader(type);
-
-	//Loads in the shader code
-	glContext.shaderSource(shader, source);
-
-	//Dynamically compiles it
-	glContext.compileShader(shader);
-
-	return shader;
-}
-
-
-
-/**
- * Creates a program based on a vertex and fragment shader source
- * @param {WebGL2RenderingContext} glContext - The WebGL context
- * @param {string} vertexShaderSource - The source of the vertex shader
- * @param {string} fragmentShaderSource - The source of the fragment shader
- * @returns {WebGLProgram} - The program composed of 2 shaders
- */
-function createProgram(glContext, vertexShaderSource, fragmentShaderSource) {
-	//Creates a new program
-	var program = glContext.createProgram();
-
-	//Calls a compilation of the vertex shader
-	var vshader = createShader(glContext, vertexShaderSource, glContext.VERTEX_SHADER);
-
-	//Calls a compilation of the fragment shader
-	var fshader = createShader(glContext, fragmentShaderSource, glContext.FRAGMENT_SHADER);
-
-	//Copies the vertex shader to the program
-	glContext.attachShader(program, vshader);
-
-	//The shader being copied, it can be deleted
-	glContext.deleteShader(vshader);
-
-	//Copies the fragment shader into the program
-	glContext.attachShader(program, fshader);
-
-	//The shader being copied, it can be deleted
-	glContext.deleteShader(fshader);
-
-	//We link the new program to the WebGL context
-	glContext.linkProgram(program);
-
-	//Retrives and logs in console the logs from the program creation
-	var log = glContext.getProgramInfoLog(program);
-	if (log) {
-		console.log(log);
-	}
-
-	//Retrives and logs in console the logs from the vertex shader creation
-	var log = glContext.getShaderInfoLog(vshader);
-	if (log) {
-		console.log(log);
-	}
-
-	//Retrives and logs in console the logs from the fragment shader creation
-	var log = glContext.getShaderInfoLog(fshader);
-	if (log) {
-		console.log(log);
-	}
-
-	return program;
-}
-
-/* ***************************************** *\
 						Application functions
 \ *****************************************  */
 /**
@@ -214,13 +136,9 @@ function initBuffers() {
     //Creation of the vertexArray we will use to transfer the position and color buffers
     vertexArray = glContext.createVertexArray();
 
-    //Creation of the pMatrix with glMatrix library
-    pMatrix = mat4.create();
-    //Creation of the mvMatrix with glMatrix library
-    mvMatrix = mat4.create();
-
     //Binding the vertexArray as the current vertex array
     glContext.bindVertexArray(vertexArray);
+
 
     //Enabling the position location to be used to transfer vertex arrays
     glContext.enableVertexAttribArray(vertexPositionLocation);
@@ -288,18 +206,32 @@ function initBuffers() {
 		//Reset ARRAY_BUFFER
 	  glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
-	  var indices = new Uint16Array([0, 1, 2, 1, 2, 3]);
+		//Declaration of the indexes
+	  const indices = new Uint16Array([0, 1, 2, 1, 2, 3]);
+
+  	//We must keep the index count of our element array buffer
 	  indexLength = indices.length;
+
+		//We create the index buffer
 	  indexBuffer = glContext.createBuffer();
+
+		//We bind the index buffer to the element_array_buffer slot
 	  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+		//We transfer the index data to the index buffer
 	  glContext.bufferData(
 	    glContext.ELEMENT_ARRAY_BUFFER,
 	    indices,
 	    glContext.STATIC_DRAW
 	  );
-	  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
+
+		/* Notice that we don't remove the ELEMENT_ARRAY_BUFFER attribution before unsetting the vertexarray */
+
+
 	  //Reset the selected vertex Array
 	  glContext.bindVertexArray(null);
+
+
 }
 /**
  * Draws the content with the wanted data
@@ -308,14 +240,10 @@ function drawScene() {
 	//Clears the canvas with the clear color
   glContext.clear(glContext.COLOR_BUFFER_BIT);
 
-  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
-  glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
-
   //Binding the vertexArray as the current vertex array
   glContext.bindVertexArray(vertexArray);
 
-  //We set the indexes in the buffers
-  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
   //Draws the triangle. DrawArraysInstanced allows to draw multiple instances
   glContext.drawElements(
     glContext.TRIANGLES,
@@ -323,8 +251,7 @@ function drawScene() {
     glContext.UNSIGNED_SHORT,
     0
   );
-  //Unbinding of the Element_array_buffer
-  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
+
   //Unbinding of the vertex array
   glContext.bindVertexArray(null);
   //Request the drawing of the next scene (optional for this sample)
@@ -340,6 +267,18 @@ function configureContext() {
 
 }
 
+function configureScene() {
+  //Creation of the pMatrix with glMatrix library
+  pMatrix = mat4.create();
+  //Creation of the mvMatrix with glMatrix library
+  mvMatrix = mat4.create();
+
+  //Setting the values for the constants of pMatrix and mvMatrix
+  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
+  glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
+}
+
+
 function initWebGL() {
     //We initialize each components in a specific order
     initWebGLContext();
@@ -347,6 +286,7 @@ function initWebGL() {
     initShaderParameters();
     initBuffers();
     configureContext();
+		configureScene();
     //We request the first drawing when all is initialized
     requestAnimationFrame(drawScene);
 }
