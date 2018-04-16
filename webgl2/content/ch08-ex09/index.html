@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="../css/stylesheet.css">
+		<script src="../js/gl-matrix-min.js"></script>
+	</head>
+	<body onLoad="initWebGL()">
+		<header>
+			<h1>Ch.08 Ex.09 : Une forêt</h1>
+			<a href="http://webgl3d.info" style="text-decoration:none; color: white;">WebGL2.0 par la pratique© 2018</a>
+		</header>
+    <p>Display a forest with random number of threes of random dimensions</p>
+    <p>Possible interactions:</p>
+    <ul>
+        <li>Rotation : Mouse movement (left button down)</li>
+        <li>Moving camera : Mouse movement (right button down)</li>
+        <li>Zoom : Mouse wheel</li>
+        <li>Ajouter un arbre : +</li>
+        <li>Soustraire un arbre : -</li>
+    </ul>
+    <p id="treeCount"> </p>
+		<canvas id="webgl-canvas" width="1500" height="500" oncontextmenu="return false;">
+		HTML5 is not supported
+		</canvas>
+		<script src="app.js"></script>
+		<script src="code.js"></script>
+	</body>
+</html>
