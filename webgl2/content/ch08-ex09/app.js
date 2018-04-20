@@ -71,7 +71,7 @@ void main()
   vec3 N = normalize(vNormal);
   float lambertTerm = dot(N, -L);
   vec2 mapCoord = vec2(vTextureCoord.s, vTextureCoord.t);
-  vec4 texelColor = texture(uColorTexture, vTextureCoord);
+  vec4 texelColor = texture(uColorTexture, mapCoord);
 
   float alpha = 1.0;
   if (texelColor[0]==(254.0/255.0) && texelColor[1]==(121.0/255.0) && texelColor[2]==(243.0/255.0))
@@ -459,6 +459,25 @@ function initLights() {
     glContext.uniform1f(ShininessLocation, 1.0);
 }
 
+
+function loadImages(urls, callback) {
+  var images = [];
+  var imagesToLoad = urls.length;
+
+  // Called each time an image finished loading.
+  var onImageLoad = function() {
+    --imagesToLoad;
+    // If all the images are loaded call the callback.
+    if (imagesToLoad == 0) {
+      callback(images);
+    }
+  };
+
+  for (var ii = 0; ii < imagesToLoad; ++ii) {
+    var image = loadImage(urls[ii], onImageLoad);
+    images.push(image);
+  }
+}
 /**
 * Bind texture with image
 */
@@ -513,7 +532,7 @@ function initTexture()
 {
   for(var i = 0; i < maxSample; i++)
   {
-    initTextureWithImage("../ressources/fig/tree/" + index + ".png", texColorTab);
+    initTextureWithImage("../ressources/fig/tree/" + i + ".png", texColorTab);
   }
 }
 
@@ -655,7 +674,7 @@ function configureScene() {
 }
 
 function generateForest() {
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 10; i++) {
         makeRandomTree();
     }
 }
@@ -694,9 +713,23 @@ function initWebGL() {
    initShaderParameters();
    initBuffers();
    initLights();
-   generateForest();
+   initTexture();
    configureContext();
 	 configureScene();
+   generateForest();
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[0]);
+   glContext.activeTexture(glContext.TEXTURE1);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[1]);
+   glContext.activeTexture(glContext.TEXTURE2);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[2]);
+   glContext.activeTexture(glContext.TEXTURE3);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[3]);
+   glContext.activeTexture(glContext.TEXTURE4);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[4]);
+   glContext.activeTexture(glContext.TEXTURE5);
+   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexCoordBuffer);
+   glContext.vertexAttribPointer(textureLocation, 2, glContext.FLOAT, false, 0, 0);
+
    //We request the first drawing when all is initialized
    requestAnimationFrame(draw);
 }
