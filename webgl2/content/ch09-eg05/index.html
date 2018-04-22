@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="../css/stylesheet.css">
+		<script src="../js/gl-matrix-min.js"></script>
+		<script src="../js/utility.js"></script>
+	</head>
+	<body onLoad="initWebGL()">
+		<header>
+			<h1>Ch.09 E.g.5 : Affichage d'un visage avec morphing dynamique</h1>
+			<a href="http://webgl3d.info" style="text-decoration:none; color: white;">WebGL par la pratique© 2018</a>
+		</header>
+		<p>
+		Utiliser les sliders pour changer l'expression du visage (Morph target animation).
+		</p>
+		<table>
+		<tr>
+			<td>Joie</td><td><input type="range" id="sliderHappiness" value="0" min="0" max="100" onChange="morph();"></td>
+		</tr>
+		<tr>
+			<td>Tristesse</td><td><input type="range" id="sliderSadness" value="0" min="0" max="100" onChange="morph();"></td>
+		</tr>
+		<tr>
+			<td>Surprise</td><td><input type="range" id="sliderSurprise" value="0" min="0" max="100" onChange="morph();"></td>
+		</tr>
+		</table>
+		<canvas id="webgl-canvas" width="500" height="500">
+		HTML5 is not supported
+		</canvas>
+		<script src="app.js"></script>
+		<script src="../js/mouseMotionHandling.js"></script>
+		<script src="../js/webgl-obj-loader.min.js"></script>
+	</body>
+</html>
