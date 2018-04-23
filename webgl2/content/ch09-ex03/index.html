@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="../css/stylesheet.css">
+		<script src="../js/gl-matrix-min.js"></script>
+		<script src="../js/utility.js"></script>
+	</head>
+	<body onLoad="initWebGL()">
+		<header>
+			<h1>Ch.09 Ex.3 : Déformation d’une maille pour les expressions faciales text</h1>
+			<a href="http://webgl3d.info" style="text-decoration:none; color: white;">WebGL par la pratique© 2018</a>
+		</header>
+		<p>Le visage ci-dessous est un modèle trouvé sur Internet au format OBJ. Un script écrit par notre équipe a permis de le convertir en format JSON. Le modèle de lumière de Phong est appliqué de manière basique.</p>
+		<p>Les touches W, A, S et D permettent de faire tourner la caméra.</p>
+		<p>Les sliders ci-dessous permettent de déplacer certains points-clés du visage selon les 3 axes.</p>
+		<table>
+				<tr>
+						<th>Point</th>
+						<th>X</th>
+						<th>Y</th>
+						<th>Z</th>
+				</tr>
+				<tr>
+						<td>bouche gauche</td>
+						<td>
+								<input type="range" id="sliderBoucheGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderBoucheGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderBoucheGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+				<tr>
+						<td>bouche droite</td>
+						<td>
+								<input type="range" id="sliderBoucheDroiteX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderBoucheDroiteY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderBoucheDroiteZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+				<tr>
+						<td>sourcil gauche</td>
+						<td>
+								<input type="range" id="sliderSourcilGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderSourcilGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderSourcilGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+				<tr>
+						<td>sourcil droit</td>
+						<td>
+								<input type="range" id="sliderSourcilDroitX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderSourcilDroitY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderSourcilDroitZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+				<tr>
+						<td>joue gauche</td>
+						<td>
+								<input type="range" id="sliderJoueGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderJoueGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderJoueGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+				<tr>
+						<td>joue droite</td>
+						<td>
+								<input type="range" id="sliderJoueDroiteX" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderJoueDroiteY" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+						<td>
+								<input type="range" id="sliderJoueDroiteZ" value="0" min="-100" max="100" onChange="elastic();">
+						</td>
+				</tr>
+		</table>
+		<canvas id="webgl-canvas" width="500" height="500">
+		HTML5 is not supported
+		</canvas>
+		<script src="app.js"></script>
+	</body>
+</html>

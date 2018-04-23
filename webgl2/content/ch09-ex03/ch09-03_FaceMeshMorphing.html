@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./css/stylesheet.css">
+    <script src="./js/commonFunctions.js"></script>
+    <script src='./js/gl-matrix-min.js'></script>
+    <script src='./js/webglTools.js'></script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aVertexTexture;
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat4 uNMatrix;
+    uniform vec3 uLightPosition;
+    varying vec3 vNormal;
+    varying vec3 vLightRay;
+    varying vec3 vEyeVec;
+    varying vec2 vTexture;
+    void main(void)
+    {
+      vec4 vertex=uMVMatrix * vec4(aVertexPosition, 1.0);
+      vNormal=vec3(uNMatrix * vec4(aVertexNormal, 1.0));
+      vec4 light=vec4(uLightPosition,1.0);
+      vLightRay=vertex.xyz - light.xyz;
+      vEyeVec=-vec3(vertex.xyz);
+      vTexture=aVertexTexture;
+       gl_Position=uPMatrix * vertex;
+    }
+  </script>
+    <script id="shader-fs" type="x-shader/x-fragment">
+        #ifdef GL_ES
+		precision highp float;
+		#endif
+		uniform float uShininess;
+    uniform vec3 uLightAmbient;
+    uniform vec3 uMaterialDiffuse;
+    uniform vec3 uMaterialSpecular;
+    uniform sampler2D uColorTexture;
+    varying vec3 vNormal;
+    varying vec3 vLightRay;
+    varying vec3 vEyeVec;
+    varying vec2 vTexture;
+    void main(void){
+      vec2 mapCoord=vec2(vTexture.s, vTexture.t);
+      vec4 texelColor=texture2D(uColorTexture, mapCoord);
+      vec3 finalColor=texelColor.rgb;
+      vec3 L=normalize(vLightRay);
+      vec3 N=normalize(vNormal);
+
+      float lambertTerm=dot(N,-L);
+      if(lambertTerm > 0.0){
+        finalColor +=uMaterialDiffuse * lambertTerm;
+        vec3 E=normalize(vEyeVec);
+        vec3 R=reflect(L, N);
+        float specular=pow( max(dot(R, E), 0.0), uShininess);
+        finalColor +=uMaterialSpecular * specular;
+      }
+      gl_FragColor=vec4(finalColor, 1.0);
+    }
+  </script>
+    <script>
+        var rotY = 0;
+        var rotX = 0;
+        var vertexBuffer = null;
+        var vertexBase = null;
+        var indexBuffer = null;
+        var normalsBuffer = null;
+        var texturesBuffer = null;
+        var indices = {};
+        var textures = new Array;
+        var points = {};
+        points["BoucheGauche"] = [0.108, -0.105, 0.309];
+        points["BoucheDroite"] = [-0.108, -0.105, 0.309];
+        points["SourcilGauche"] = [0.205, 0.165, 0.167];
+        points["SourcilDroit"] = [-0.205, 0.165, 0.167];
+        points["JoueGauche"] = [0.168, 0.058, 0.233];
+        points["JoueDroite"] = [-0.168, 0.058, 0.233];
+        var mvMatrix = mat4.create();
+        var pMatrix = mat4.create();
+        var nMatrix = mat4.create();
+        window.onkeydown = checkKey;
+        var delta = 5;
+        function checkKey(ev) {
+            switch (ev.keyCode) {
+                case 65:
+                    rotY -= delta;
+                    break;
+                case 68:
+                    rotY += delta;
+                    break;
+                case 87:
+                    rotX -= delta;
+                    break;
+                case 83:
+                    rotX += delta;
+                    break;
+                default:
+                    console.log(ev.keyCode);
+                    break;
+            }
+        }
+        function initShaderParameters(prg) {
+            prg.vertexPositionAttribute = glContext.getAttribLocation(prg, "aVertexPosition");
+            glContext.enableVertexAttribArray(prg.vertexPositionAttribute);
+            prg.vertexNormalAttribute = glContext.getAttribLocation(prg, "aVertexNormal");
+            glContext.enableVertexAttribArray(prg.vertexNormalAttribute);
+            prg.vertexTextureAttribute = glContext.getAttribLocation(prg, "aVertexTexture");
+            glContext.enableVertexAttribArray(prg.vertexTextureAttribute);
+            prg.pMatrixUniform = glContext.getUniformLocation(prg, 'uPMatrix');
+            prg.mvMatrixUniform = glContext.getUniformLocation(prg, 'uMVMatrix');
+            prg.nMatrixUniform = glContext.getUniformLocation(prg, 'uNMatrix');
+            prg.lightPositionUniform = glContext.getUniformLocation(prg, 'uLightPosition');
+            prg.shininessUniform = glContext.getUniformLocation(prg, 'uShininess');
+            prg.lightAmbientUniform = glContext.getUniformLocation(prg, 'uLightAmbient');
+            prg.materialDiffuseUniform = glContext.getUniformLocation(prg, 'uMaterialDiffuse');
+            prg.materialSpecularUniform = glContext.getUniformLocation(prg, 'uMaterialSpecular');
+        }
+        function loadModel(filename) {
+            var request = new XMLHttpRequest();
+            console.info('Requesting ' + filename);
+            request.open("GET", filename);
+            request.onreadystatechange = function() {
+                if (request.readyState == 4) {
+                    if (request.status == 404) {
+                        console.info(filename + ' does not exist');
+                    } else {
+                        handleLoadedModel(filename, JSON.parse(request.responseText));
+                    }
+                }
+            };
+            request.send();
+        }
+        function handleLoadedModel(filename, payload) {
+            console.info(filename + ' has been retrieved from the server');
+            console.log("vertices: " + payload.vertices.length);
+            console.log("normals: " + payload.normals.length);
+            console.log("textures: " + payload.textures.length);
+            vertexBase = payload.vertices;
+            normalsBuffer = getVertexBufferWithVertices(payload.normals);
+            texturesBuffer = getVertexBufferWithVertices(payload.textures);
+            for (var i = 0; i < payload.indices.length; i++) {
+                console.log("loading " + payload.indices[i].texture + " for " + payload.indices[i].indices.length + " faces");
+                indices[payload.indices[i].texture] = payload.indices[i].indices;
+                textures[payload.indices[i].texture] = new Array();
+                initTextureWithImage("..models/head/" + payload.indices[i].texture, textures[payload.indices[i].texture]);
+            }
+            elastic();
+            initLights();
+            renderLoop();
+        }
+        function elastic() {
+            var vertexModified = new Array;
+            for (var i = 0; i < vertexBase.length; i++) {
+                vertexModified[i] = vertexBase[i];
+            }
+            for (var name in points) {
+                var dx = document.getElementById("slider" + name + "X").value / 3000;
+                var dy = document.getElementById("slider" + name + "Y").value / 3000;
+                var dz = document.getElementById("slider" + name + "Z").value / 3000;
+                var x = points[name][0];
+                var y = points[name][1];
+                var z = points[name][2];
+                for (var i = 0; i < vertexBase.length; i += 3) {
+                    var dist = Math.sqrt(Math.pow(x - vertexBase[i], 2) + Math.pow(y - vertexBase[i + 1], 2) + Math.pow(z - vertexBase[i + 2], 2));
+                    dist = Math.pow((0.5 * (2 - dist)), 30);
+                    vertexModified[i] += dx * dist;
+                    vertexModified[i + 1] += dy * dist;
+                    vertexModified[i + 2] += dz * dist;
+                }
+            }
+            vertexBuffer = getVertexBufferWithVertices(vertexModified);
+        }
+        function degToRad(degrees) {
+            return (degrees * Math.PI / 180.0);
+        }
+        function initLights() {
+            glContext.uniform3f(prg.lightPositionUniform, 1, 1, 1);
+            glContext.uniform3f(prg.lightAmbientUniform, 0.1, 0.1, 0.1);
+            glContext.uniform3f(prg.materialSpecularUniform, 0.2, 0.2, 0.2);
+            glContext.uniform3f(prg.materialDiffuseUniform, 0.25, 0.25, 0.25);
+            glContext.uniform1f(prg.shininessUniform, 30.0);
+        }
+        function drawScene() {
+            glContext.clearColor(0.9, 0.9, 1.0, 1.0);
+            glContext.enable(glContext.DEPTH_TEST);
+            glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
+            glContext.viewport(0, 0, c_width, c_height);
+            mat4.perspective(pMatrix, degToRad(40), c_width / c_height, 0.1, 1000.0);
+            mat4.identity(mvMatrix);
+            var tx = 0;
+            var ty = 0.0;
+            var tz = -1.8;
+            mat4.translate(mvMatrix, mvMatrix, [tx, ty, tz]);
+            mat4.rotate(mvMatrix, mvMatrix, degToRad(rotY), [0, 1, 0]);
+            mat4.rotate(mvMatrix, mvMatrix, degToRad(rotX), [1, 0, 0]);
+            glContext.uniformMatrix4fv(prg.pMatrixUniform, false, pMatrix);
+            glContext.uniformMatrix4fv(prg.mvMatrixUniform, false, mvMatrix);
+            mat4.copy(nMatrix, mvMatrix);
+            mat4.invert(nMatrix, nMatrix);
+            mat4.transpose(nMatrix, nMatrix);
+            glContext.uniformMatrix4fv(prg.nMatrixUniform, false, nMatrix);
+            glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffer);
+            glContext.vertexAttribPointer(prg.vertexPositionAttribute, 3, glContext.FLOAT, false, 0, 0);
+            glContext.bindBuffer(glContext.ARRAY_BUFFER, normalsBuffer);
+            glContext.vertexAttribPointer(prg.vertexNormalAttribute, 3, glContext.FLOAT, false, 0, 0);
+            glContext.bindBuffer(glContext.ARRAY_BUFFER, texturesBuffer);
+            glContext.vertexAttribPointer(prg.vertexTextureAttribute, 2, glContext.FLOAT, false, 0, 0);
+            glContext.activeTexture(glContext.TEXTURE0);
+            glContext.uniform1i(prg.uColorTexture, 0);
+            for (var texture in indices) {
+                indexBuffer = getIndexBufferWithIndices(indices[texture]);
+                glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+                glContext.bindTexture(glContext.TEXTURE_2D, textures[texture][0]);
+                glContext.drawElements(glContext.TRIANGLES, indices[texture].length, glContext.UNSIGNED_SHORT, 0);
+            }
+        }
+        function initWebGL() {
+            glContext = getGLContext('webgl-canvas');
+            initProgram();
+            loadModel("models/head/main.json");
+        }
+    </script>
+</head>
+<body onload="initWebGL()">
+    <script>
+        displayTitle("Ch.09 Ex.3 : Déformation d’une maille pour les expressions faciales", 1, 1, 1, 1, 1, 1, 1);
+    </script>
+    <p>Le visage ci-dessous est un modèle trouvé sur Internet au format OBJ. Un script écrit par notre équipe a permis de le convertir en format JSON. Le modèle de lumière de Phong est appliqué de manière basique.</p>
+    <p>Les touches W, A, S et D permettent de faire tourner la caméra.</p>
+    <p>Les sliders ci-dessous permettent de déplacer certains points-clés du visage selon les 3 axes.</p>
+    <table>
+        <tr>
+            <th>Point</th>
+            <th>X</th>
+            <th>Y</th>
+            <th>Z</th>
+        </tr>
+        <tr>
+            <td>bouche gauche</td>
+            <td>
+                <input type="range" id="sliderBoucheGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderBoucheGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderBoucheGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+        <tr>
+            <td>bouche droite</td>
+            <td>
+                <input type="range" id="sliderBoucheDroiteX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderBoucheDroiteY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderBoucheDroiteZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+        <tr>
+            <td>sourcil gauche</td>
+            <td>
+                <input type="range" id="sliderSourcilGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderSourcilGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderSourcilGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+        <tr>
+            <td>sourcil droit</td>
+            <td>
+                <input type="range" id="sliderSourcilDroitX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderSourcilDroitY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderSourcilDroitZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+        <tr>
+            <td>joue gauche</td>
+            <td>
+                <input type="range" id="sliderJoueGaucheX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderJoueGaucheY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderJoueGaucheZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+        <tr>
+            <td>joue droite</td>
+            <td>
+                <input type="range" id="sliderJoueDroiteX" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderJoueDroiteY" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+            <td>
+                <input type="range" id="sliderJoueDroiteZ" value="0" min="-100" max="100" onChange="elastic();">
+            </td>
+        </tr>
+    </table>
+    <canvas id="webgl-canvas" width="500" height="500">HTML5 is not supported</canvas>
+</body>
+</html>
