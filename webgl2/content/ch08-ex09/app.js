@@ -115,7 +115,7 @@ var vertexTextCoordsBuffer = null; //Buffer that will contain the coordinate  ve
 var vertexNormalLocation = -1; //Location of the texture  coordinate within the shader
 var vertexNormalBuffer = null; //Buffer that will contain the coordinate  vertex
 
-var textures = new Array();
+
 
 var indexBuffer = null; //Buffer that will contain the indexes
 var indexLength = -1; //Size of the indexes for the current
@@ -134,20 +134,15 @@ var texture = null;
 var textureLocation = null;
 
 //Lights
-var lightPosition = null; // vec3 for the light
 var LightPositionLocation = null; // reference to the light
-
-var shininess = null;//float for the shininess
 var ShininessLocation = null;// reference to the shininess
-
-var lightAmbient = null;// vec3 for the lightAmbient
 var LightAmbientLocation = null;// reference to the lightAmbient
-
-var materialDiffuse = null;// vec3 for the materialDiffuse
 var materialDiffuseLocation = null;// reference to the materialDiffuse
-
-var materialSpecular = null;// vec3 for the materialSpecular
 var materialSpecularLocation = null;// reference to the materialSpecular
+
+//Draw instance
+var instanceCount = 4;
+var ext = null;
 
 //Inputs
 var currentTexID = 1;
@@ -159,6 +154,7 @@ var vertices = [];
 var textCoords = [];
 var normals = [];
 var forest = new Array();
+var textures = new Array();
 var canva = document.getElementById("webgl-canvas");
 var c_width = canva.width;
 var c_height = canva.height;
@@ -193,6 +189,7 @@ function initWebGLContext() {
    }
    //Gets a webgl 2 context
    glContext = canvas.getContext("webgl2", {antialias: false});
+   ext = glContext.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
 
    //If it does not support WebGL2, throw an exception
    var isWebGL2 = glContext != null;
@@ -259,7 +256,7 @@ function initShaderParameters() {
    materialSpecularLocation = glContext.getUniformLocation(program, "uMaterialSpecular");
 
    //Retriving the location of the texture in the current program
-   textureLocation = glContext.getUniformLocation(program, "uColorTexture");
+   vertexTextCoordsLocation = glContext.getUniformLocation(program, "uColorTexture");
 }
 
 /**
@@ -277,7 +274,7 @@ function initBuffers() {
    glContext.enableVertexAttribArray(vertexPositionLocation);
 
    //Vertices of positions
-   var vertices = new Float32Array([
+   vertices = new Float32Array([
        -1.0, -1.0, 0.0,
         1.0, -1.0, 0.0,
        -1.0, 1.0, 0.0,
@@ -303,6 +300,35 @@ function initBuffers() {
        0,
        0
    );
+   //Reset ARRAY_BUFFER
+   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+
+   //normals
+   normals = new Float32Array([
+       0.0, 0.0, 1.0,
+       0.0, 0.0, 1.0,
+       0.0, 0.0, 1.0,
+       0.0, 0.0, 1.0
+   ]);
+
+   vertexNormalBuffer = glContext.createBuffer();
+   //Binding it to the ARRAY_BUFFER slot
+   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexNormalBuffer);
+
+   //Transfer the vertice data to the buffer
+   glContext.bufferData(glContext.ARRAY_BUFFER, normals, glContext.STATIC_DRAW);
+
+   //Send the vertexPositionBuffer to the vertex pos location,
+   //with 3 values per point, as float, without spaces between the data and without offset
+   glContext.vertexAttribPointer(
+       vertexNormalLocation,
+       3,
+       glContext.FLOAT,
+       false,
+       0,
+       0
+   );
+
    //Reset ARRAY_BUFFER
    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
@@ -459,70 +485,50 @@ function initLights() {
     glContext.uniform1f(ShininessLocation, 1.0);
 }
 
-
-function loadImages(urls, callback) {
-  var images = [];
-  var imagesToLoad = urls.length;
-
-  // Called each time an image finished loading.
-  var onImageLoad = function() {
-    --imagesToLoad;
-    // If all the images are loaded call the callback.
-    if (imagesToLoad == 0) {
-      callback(images);
-    }
-  };
-
-  for (var ii = 0; ii < imagesToLoad; ++ii) {
-    var image = loadImage(urls[ii], onImageLoad);
-    images.push(image);
-  }
-}
 /**
 * Bind texture with image
 */
-function initTextureWithImage(sFilename, texturen)
-{
-  var anz = texturen.length;
-  texturen[anz] = glContext.createTexture();
+function initTextureWithImage(sFilename, texturen) {
+    var anz = texturen.length;
+    texturen[anz] = glContext.createTexture();
 
-  texturen[anz].image = new Image();
-  texturen[anz].image.onload = function() {
-      glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
-      glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, true);
-      glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, texturen[anz].image);
-      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
-      glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
+    texturen[anz].image = new Image();
+    texturen[anz].image.onload = function() {
+        glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
+        glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, true);
+        glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, texturen[anz].image);
+        glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
+        glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
 
-      glContext.generateMipmap(glContext.TEXTURE_2D);
+        glContext.generateMipmap(glContext.TEXTURE_2D);
 
-      glContext.bindTexture(glContext.TEXTURE_2D, null);
-  }
+        glContext.bindTexture(glContext.TEXTURE_2D, null);
+    }
 
-  texturen[anz].image.src = sFilename;
+    texturen[anz].image.src = sFilename;
 
-  // let's use a canvas to make textures, with by default a random color (red, green, blue)
-  function rnd() {
-      return Math.floor(Math.random() * 256);
-  }
+    // let's use a canvas to make textures, with by default a random color (red, green, blue)
+    function rnd() {
+        return Math.floor(Math.random() * 256);
+    }
 
-  var c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 64;
-  var ctx = c.getContext("2d");
-  var red = rnd();
-  var green = rnd();
-  var blue = rnd();
-  ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+    var c = document.createElement("canvas");
+    c.width = 64;
+    c.height = 64;
+    var ctx = c.getContext("2d");
+    var red = rnd();
+    var green = rnd();
+    var blue = rnd();
+    ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
 
-  ctx.fillRect(0, 0, 64, 64);
+    ctx.fillRect(0, 0, 64, 64);
 
-  glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
-  glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, c);
-  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
-  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
-  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
-  glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+    glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
+    glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, c);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
 }
 
 /**
@@ -593,20 +599,18 @@ function drawElement(vertexBuffer, normalBuffer) {
   glContext.bindVertexArray(vertexArray);
 
   glContext.enableVertexAttribArray(vertexPositionLocation);
-  glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffer);
-  glContext.bufferData(glContext.ARRAY_BUFFER, vertices, glContext.STATIC_DRAW);
-  glContext.vertexAttribPointer(vertexPositionLocation,3,glContext.FLOAT,false, 0, 0);
+  glContext.bindBuffer(glContext.ARRAY_BUFFER, normalBuffer);
+  glContext.vertexAttribPointer(vertexNormalLocation,3,glContext.FLOAT,false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
-
-  vertexNormalBuffer = glContext.createBuffer();
-  glContext.bindBuffer(glContext.ARRAY_BUFFER, normalBuffer);
-  glContext.bufferData(glContext.ARRAY_BUFFER, normals, glContext.STATIC_DRAW);
-  glContext.vertexAttribPointer(vertexNormalLocation ,3,glContext.FLOAT,false, 0, 0);
-
-
+  glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffer);
+  glContext.vertexAttribPointer(vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0);
+  glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+  glContext.uniform1i(vertexTextcoordLocation, currentTexID);
   //Draws the triangle. DrawArraysInstanced allows to draw multiple instances
-  glContext.drawArrays(glContext.TRIANGLE_STRIP, 0, indices.length);
+  //glContext.drawArrays(glContext.TRIANGLE_STRIP, 0, indices.length);
+
+  glContext.drawElements(glContext.TRIANGLE_STRIP, indexLength, glContext.UNSIGNED_SHORT, 0);
 
   //Unbind the vertexArray
   glContext.bindVertexArray(null);
@@ -618,7 +622,7 @@ function drawElement(vertexBuffer, normalBuffer) {
 */
 function draw() {
 	//Clears the canvas with the clear color
- glContext.clear(glContext.COLOR_BUFFER_BIT);
+ //glContext.clear(glContext.COLOR_BUFFER_BIT);
 
  mat4.perspective(pMatrix, degToRad(60), c_width / c_height, 0.1, 1000.0);
 
@@ -629,10 +633,17 @@ function draw() {
  mat4.copy(nMatrix, mvMatrix);
  mat4.invert(nMatrix, nMatrix);
  mat4.transpose(nMatrix, nMatrix);
+ glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
+ glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
+ mat4.copy(nMatrix, mvMatrix);
+ mat4.invert(nMatrix, nMatrix);
+ mat4.transpose(nMatrix, nMatrix);
+ glContext.uniformMatrix4fv(NMatrixLocation, false, nMatrix);
+ initLights();
 
- //initLights();
-
- drawATree(forest[0]);
+ for (var i = 0; i < forest.length; i++) {
+      drawATree(forest[i]);
+ }
  //Request the drawing of the next scene (optional for this sample)
  requestAnimationFrame(draw);
 }
@@ -664,17 +675,13 @@ function configureScene() {
  nMatrix = mat4.create();
 
  //Setting the values for the constants of pMatrix and mvMatrix and nMatrix
- glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
- glContext.uniformMatrix4fv(MVMatrixLocation, false, mvMatrix);
- glContext.uniformMatrix4fv(NMatrixLocation, false, nMatrix);
 
- //Setting the values for the textur
- glContext.uniform1i(textureLocation, currentTexID);
+
 
 }
 
 function generateForest() {
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 50; i++) {
         makeRandomTree();
     }
 }
@@ -717,6 +724,8 @@ function initWebGL() {
    configureContext();
 	 configureScene();
    generateForest();
+   // set which texture units to render with.
+   glContext.uniform1i(vertexTextCoordsLocation, currentTexID);
    glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[0]);
    glContext.activeTexture(glContext.TEXTURE1);
    glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[1]);
@@ -727,9 +736,53 @@ function initWebGL() {
    glContext.activeTexture(glContext.TEXTURE4);
    glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[4]);
    glContext.activeTexture(glContext.TEXTURE5);
-   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexCoordBuffer);
-   glContext.vertexAttribPointer(textureLocation, 2, glContext.FLOAT, false, 0, 0);
+   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexTextCoordsBuffer);
+   glContext.vertexAttribPointer(vertexTextcoordLocation, 2, glContext.FLOAT, false, 0, 0);
 
    //We request the first drawing when all is initialized
    requestAnimationFrame(draw);
+}
+
+document.getElementById("webgl-canvas").onmousedown = handleMouseDown;
+document.onmouseup = handleMouseUp;
+document.onmousemove = handleMouseMove;
+var canvas = document.getElementById("webgl-canvas");
+if (canvas.addEventListener) {
+   canvas.addEventListener("mousewheel", MouseScroll, false);
+   canvas.addEventListener("DOMMouseScroll", MouseScroll, false);
+} else {
+   if (canvas.attachEvent) {
+       canvas.attachEvent("onmousewheel", MouseScroll);
+   }
+}
+function MouseScroll(event) {
+   var rolled = 0;
+   if ('wheelDelta' in event) {
+       rolled = event.wheelDelta;
+   } else {
+       rolled = event.detail;
+   }
+   distance += -rolled / 10;
+}
+window.onkeydown = checkKey;
+var delta = 5;
+function checkKey(ev) {
+   switch (ev.keyCode) {
+       case 49:
+       case 107:
+           makeRandomTree();
+           break;
+       case 173:
+       case 109:
+       case 189:
+           if (forest.length > 0) {
+               delete forest[forest.length - 1];
+               forest.splice(forest.length - 1, forest.length);
+               updateTreeCounterDisplay();
+           }
+           break;
+       default:
+           console.log(ev.keyCode);
+           break;
+   }
 }
