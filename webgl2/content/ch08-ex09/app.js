@@ -106,15 +106,13 @@ var vertexArray = null; //vertexArray is a variable used to communicate the vert
 var vertexPositionLocation = -1; //Location of the vertex position within the shader
 var vertexPositionBuffer = null; //Buffer that will contain the position vertex
 
-var vertexCoordLocation = -1; //Location of the coordination coordinate within the shader
-var vertexCoordBuffer = null; //Buffer that will contain the coordinate  vertex
-
-var vertexTextCoordsLocation = -1; //Location of the texture  coordinate within the shader
-var vertexTextCoordsBuffer = null; //Buffer that will contain the coordinate  vertex
+var vertexTextureCoordLocation = -1; //Location of the texture  coordinate within the shader
+var vertexTextureCoordBuffer = null; //Buffer that will contain the coordinate  vertex
 
 var vertexNormalLocation = -1; //Location of the texture  coordinate within the shader
 var vertexNormalBuffer = null; //Buffer that will contain the coordinate  vertex
 
+var ColorTextureLocation = -1;
 
 
 var indexBuffer = null; //Buffer that will contain the indexes
@@ -189,7 +187,7 @@ function initWebGLContext() {
    }
    //Gets a webgl 2 context
    glContext = canvas.getContext("webgl2", {antialias: false});
-   ext = glContext.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
+
 
    //If it does not support WebGL2, throw an exception
    var isWebGL2 = glContext != null;
@@ -214,7 +212,7 @@ function initProgram() {
 */
 function destroy() {
    glContext.deleteBuffer(vertexPositionBuffer);
-   glContext.deleteBuffer(vertexTextCoordsBuffer);
+   glContext.deleteBuffer(vertexTextureCoordBuffer);
    glContext.deleteProgram(program);
    glContext.deleteVertexArray(vertexArray);
 }
@@ -227,7 +225,7 @@ function initShaderParameters() {
    vertexPositionLocation = glContext.getUniformLocation(program, "pos");
 
    //Definition of the location 1 as the entry for the texcoord vertex
-   vertexTextcoordLocation = glContext.getUniformLocation(program, "textureCoord");
+   vertexTextureCoordLocation = glContext.getUniformLocation(program, "textureCoord");
 
    vertexNormalLocation = glContext.getUniformLocation(program, "normal");
 
@@ -256,13 +254,15 @@ function initShaderParameters() {
    materialSpecularLocation = glContext.getUniformLocation(program, "uMaterialSpecular");
 
    //Retriving the location of the texture in the current program
-   vertexTextCoordsLocation = glContext.getUniformLocation(program, "uColorTexture");
+   ColorTextureLocation = glContext.getUniformLocation(program, "uColorTexture");
 }
 
 /**
 * Init the buffers and values for the code
 */
 function initBuffers() {
+
+   ext = glContext.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
    //Creation of the vertexArray we will use to transfer the position and color buffers
    vertexArray = glContext.createVertexArray();
 
@@ -341,10 +341,10 @@ function initBuffers() {
    ]);
 
    //Creation of the buffer to store the textcoords in
-   vertexTextCoordsBuffer = glContext.createBuffer();
+   vertexTextureCoordBuffer = glContext.createBuffer();
 
    //Binding it to the ARRAY_BUFFER slot
-   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexTextCoordsBuffer);
+   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexTextureCoordBuffer);
 
    //Transfer the color data to the buffer
    glContext.bufferData(glContext.ARRAY_BUFFER, textCoords, glContext.STATIC_DRAW);
@@ -352,7 +352,7 @@ function initBuffers() {
    //Send the vertexColorBuffer to the vectex color location,
    //with 2 values per point, as float, without space between the data and without offset
    glContext.vertexAttribPointer(
-       vertexTextCoordsLocation,
+       vertexTextureCoordLocation,
        2,
        glContext.FLOAT,
        false,
@@ -513,7 +513,7 @@ function initTextureWithImage(sFilename, texturen) {
     }
 
     var c = document.createElement("canvas");
-    c.width = 64;
+    c.width = 12;
     c.height = 64;
     var ctx = c.getContext("2d");
     var red = rnd();
@@ -573,19 +573,42 @@ function calcTree(tree){
     tree.rotNormals = [];
     tree.vertexBuffer = [];
     tree.normalBuffer = [];
+    glContext.bindVertexArray(vertexArray);
     for (var i = -nbSteps / 2; i < nbSteps / 2; i++) {
         tree.rotVertices[i] = verticesRotY(vertices, degToRad(i * 180 / nbSteps));
         tree.rotNormals[i] = verticesRotY(normals, degToRad(i * 180 / nbSteps));
         tree.rotVertices[i] = verticesTranslation(tree.rotVertices[i], tree[0], tree[1] + tree[4] / 2, tree[2]);
-        tree.vertexBuffer[i] = getArrayBufferWithArray(tree.rotVertices[i]);
-        tree.normalBuffer[i] = getArrayBufferWithArray(tree.rotNormals[i]);
+
+        glContext.enableVertexAttribArray(vertexPositionLocation);
+        tree.vertexBuffer[i] = glContext.createBuffer();
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, tree.vertexBuffer[i]);
+        glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(tree.rotVertices[i]), glContext.STATIC_DRAW);
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+
+        glContext.enableVertexAttribArray(vertexNormalLocation);
+        tree.normalBuffer[i] = glContext.createBuffer();
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, tree.normalBuffer[i]);
+        glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(tree.rotNormals[i]), glContext.STATIC_DRAW);
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
     }
     vertices = [-tree[3] / 2, -tree[3] / 2, 0.0, 3.0 * (tree[3] / 2), -tree[3] / 2, 0.0, -tree[3] / 2, 3.0 * (tree[3] / 2), 0.0];
     tree.rotVerticesRoot = verticesRotX(vertices, degToRad(90));
     tree.rotVerticesRoot = verticesTranslation(tree.rotVerticesRoot, tree[0], tree[1], tree[2]);
     tree.rotNormalsRoot = verticesRotX(normals, degToRad(90));
-    tree.normalBufferRoots = getArrayBufferWithArray(tree.rotNormalsRoot);
-    tree.vertexBufferRoots = getArrayBufferWithArray(tree.rotVerticesRoot);
+
+    glContext.enableVertexAttribArray(vertexNormalLocation);
+    tree.normalBufferRoots = glContext.createBuffer();
+    glContext.bindBuffer(glContext.ARRAY_BUFFER,   tree.normalBufferRoots);
+    glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(tree.rotNormalsRoot), glContext.STATIC_DRAW);
+    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+
+    glContext.enableVertexAttribArray(vertexPositionLocation);
+    tree.vertexBufferRoots = glContext.createBuffer();
+    glContext.bindBuffer(glContext.ARRAY_BUFFER,  tree.vertexBufferRoots);
+    glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(tree.rotVerticesRoot), glContext.STATIC_DRAW);
+    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+
+   glContext.bindVertexArray(null);
 }
 function degToRad(degrees) {
     return (degrees * Math.PI / 180.0);
@@ -598,22 +621,31 @@ function drawElement(vertexBuffer, normalBuffer) {
   //Binding the vertexArray as the current vertex array
   glContext.bindVertexArray(vertexArray);
 
-  glContext.enableVertexAttribArray(vertexPositionLocation);
+  glContext.enableVertexAttribArray(vertexNormalLocation);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, normalBuffer);
   glContext.vertexAttribPointer(vertexNormalLocation,3,glContext.FLOAT,false, 0, 0);
-  glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+  //ext.vertexAttribDivisorANGLE(vertexNormalLocation, 1); // This makes it instanced!
+  //glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
+
+  glContext.enableVertexAttribArray(vertexPositionLocation);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffer);
   glContext.vertexAttribPointer(vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0);
-  glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-  glContext.uniform1i(vertexTextcoordLocation, currentTexID);
+
+  //ext.vertexAttribDivisorANGLE(vertexPositionLocation, 1); // This makes it instanced!
+  //glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+  glContext.uniform1i(ColorTextureLocation, currentTexID);
+  glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
   //Draws the triangle. DrawArraysInstanced allows to draw multiple instances
   //glContext.drawArrays(glContext.TRIANGLE_STRIP, 0, indices.length);
 
-  glContext.drawElements(glContext.TRIANGLE_STRIP, indexLength, glContext.UNSIGNED_SHORT, 0);
-
+   glContext.drawElements(glContext.TRIANGLE_STRIP, indexLength, glContext.UNSIGNED_SHORT, 0);
+  // Draw the instanced meshes
+  //ext.drawElementsInstancedANGLE(glContext.TRIANGLE_STRIP, indexLength, glContext.UNSIGNED_SHORT, 0, instanceCount);
   //Unbind the vertexArray
-  glContext.bindVertexArray(null);
+//  glContext.bindVertexArray(null);
+
+
 
 }
 
@@ -622,7 +654,7 @@ function drawElement(vertexBuffer, normalBuffer) {
 */
 function draw() {
 	//Clears the canvas with the clear color
- //glContext.clear(glContext.COLOR_BUFFER_BIT);
+ glContext.clear(glContext.COLOR_BUFFER_BIT);
 
  mat4.perspective(pMatrix, degToRad(60), c_width / c_height, 0.1, 1000.0);
 
@@ -681,7 +713,7 @@ function configureScene() {
 }
 
 function generateForest() {
-    for (var i = 0; i < 50; i++) {
+    for (var i = 0; i < instanceCount; i++) {
         makeRandomTree();
     }
 }
@@ -720,24 +752,34 @@ function initWebGL() {
    initShaderParameters();
    initBuffers();
    initLights();
-   initTexture();
+   for (var index = 0; index < maxSample; ++index) {
+       initTextureWithImage("../ressources/fig/tree/" + index + ".png", texColorTab);
+   }
    configureContext();
 	 configureScene();
    generateForest();
-   // set which texture units to render with.
-   glContext.uniform1i(vertexTextCoordsLocation, currentTexID);
-   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[0]);
+   distance = -49;
+   //Binding the vertexArray as the current vertex array
+ 	 glContext.bindVertexArray(vertexArray);
+
    glContext.activeTexture(glContext.TEXTURE1);
-   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[1]);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[0]);
+   glContext.uniform1i(ColorTextureLocation, 0);
+
    glContext.activeTexture(glContext.TEXTURE2);
-   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[2]);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[1]);
+   glContext.uniform1i(ColorTextureLocation, 0);
+
    glContext.activeTexture(glContext.TEXTURE3);
-   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[3]);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[2]);
+   glContext.uniform1i(ColorTextureLocation, 0);
    glContext.activeTexture(glContext.TEXTURE4);
-   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[4]);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[3]);
+   glContext.uniform1i(ColorTextureLocation, 0);
    glContext.activeTexture(glContext.TEXTURE5);
-   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexTextCoordsBuffer);
-   glContext.vertexAttribPointer(vertexTextcoordLocation, 2, glContext.FLOAT, false, 0, 0);
+   glContext.bindTexture(glContext.TEXTURE_2D, texColorTab[4]);
+   glContext.uniform1i(ColorTextureLocation, 0);
+
 
    //We request the first drawing when all is initialized
    requestAnimationFrame(draw);
