@@ -83,7 +83,6 @@ var glContext = null; //glContext global variable to access webgl functionnaliti
 var program = null; //program is the shader program where the two shaders are compiled
 var vertexArray = null; //vertexArray is a variable used to communicate the vertex
 
-
 var vertexPositionLocation = -1; //Location of the vertex position within the shader
 var vertexPositionBuffer = null; //Buffer that will contain the position vertex
 var vertexNormalLocation = -1; //Location of the normal vertex within the shader
@@ -92,14 +91,9 @@ var vertexNormalBuffer = null; //Buffer that will contain the normal vertex
 var indexBuffer = null; //Buffer that will contain the indexes
 var indexLength = -1; //Size of the indexes for the current
 
-var vertexArray2 = null;
-
 var vertexBuffersArray = null;
 var indexBuffersArray = null;
 var normalBuffersArray = null;
-
-var indexBuffer2 = null;
-var indexLength2 = -1;
 
 var pMatrix = null; //mat4 for the projection matrix
 var mvMatrix = null; //mat4 for the model view matrix
@@ -120,7 +114,6 @@ var baseShapeVertices = null;
 var baseShapeNormals = null;
 var meshTargets = [];
 var filledTrianglesRendering = true;
-var indicesArray = [];
 
 var canva = document.getElementById("webgl-canvas");
 var c_width = canva.width;
@@ -215,12 +208,9 @@ function initShaderParameters() {
 function initBuffers() {
 
     //Creation of the vertexArray we will use to transfer the position and color buffers
-    vertexArray = glContext.createVertexArray();
-    vertexArray2 = glContext.createVertexArray();
+    //vertexArray = glContext.createVertexArray();
 
-    vertexPositionBuffer = glContext.createBuffer();
-    vertexNormalBuffer = glContext.createBuffer();
-    indexBuffer = glContext.createBuffer();
+    loadAllModels();
 }
 /**
 * Defines all the links for the lightsparameters
@@ -239,32 +229,21 @@ function initLights()
   glContext.uniform1f(ShininessLocation, 10000.0);
 }
 
-function drawObject(modelViewMatrix, vertexBuffer, normalsBuffer, indexBuffer, indexCount){
-    glContext.uniformMatrix4fv(MVMatrixLocation, false, modelViewMatrix);
-    mat4.copy(nMatrix, modelViewMatrix);
-    mat4.invert(nMatrix, nMatrix);
-    mat4.transpose(nMatrix, nMatrix);
-    glContext.uniformMatrix4fv(NMatrixLocation, false, nMatrix);
+function drawObject(index, indexCount){
 
     //Binding the vertexArray as the current vertex array
     glContext.bindVertexArray(vertexArray);
 
-    glContext.bindBuffer( glContext.ARRAY_BUFFER, vertexBuffer);
-    glContext.vertexAttribPointer( vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0 );
-    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-
-    glContext.bindBuffer( glContext.ARRAY_BUFFER, normalsBuffer );
-    glContext.vertexAttribPointer( vertexNormalLocation, 3, glContext.FLOAT, false, 0, 0 );
-    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-
     //We bind the index buffer to the element_array_buffer slot
-    glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, index);
+
+
 
     if( filledTrianglesRendering )
       glContext.drawElements( glContext.TRIANGLES, indexCount, glContext.UNSIGNED_SHORT, 0 );
     else
       glContext.drawElements( glContext.POINTS, indexCount, glContext.UNSIGNED_SHORT, 0 );
-
+    //glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
     glContext.bindVertexArray(null);
 
 }
@@ -274,11 +253,8 @@ function drawObject(modelViewMatrix, vertexBuffer, normalsBuffer, indexBuffer, i
  */
 function draw() {
 
-  //Setting the values for the constants of pMatrix and mvMatrix
-  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
-
   mat4.perspective(pMatrix, degToRad(60), c_width / c_height, 0.1, 1000.0);
-
+  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
   var tx = 0;
   var ty = -0.5;
   var tz = -2.0;
@@ -286,7 +262,17 @@ function draw() {
   mat4.identity(translationMat);
   mat4.translate(translationMat, translationMat, [tx, ty, tz]);
   rotateModelViewMatrixUsingQuaternion(true);
-  drawObject(mat4.multiply(mat4.create(), translationMat, mvMatrix), vertexPositionBuffer, vertexNormalBuffer, indexBuffer, indexLength);
+  if(indexLength > 0)
+  {
+    var modelViewMatrix = mat4.multiply(mat4.create(), translationMat, mvMatrix);
+    glContext.uniformMatrix4fv(MVMatrixLocation, false, modelViewMatrix);
+    mat4.copy(nMatrix, modelViewMatrix);
+    mat4.invert(nMatrix, nMatrix);
+    mat4.transpose(nMatrix, nMatrix);
+    glContext.uniformMatrix4fv(NMatrixLocation, false, nMatrix);
+    drawObject(indexBuffer, indexLength);
+  }
+
   requestAnimationFrame(draw);
 }
 
@@ -295,10 +281,9 @@ function draw() {
  */
 function configureContext() {
 	//Configures the color in which the canvas must be cleared
-	glContext.clearColor(0.0, 0.0, 0.0, 1.0);
   glContext.enable(glContext.DEPTH_TEST);
   glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
-  glContext.viewport(0, 0, c_width, c_height);
+  	glContext.clearColor(0.9, 0.9, 1.0, 1.0);
 
 }
 
@@ -311,7 +296,7 @@ function configureScene() {
   nMatrix = mat4.create();
 
   //Setting the values for the constants of pMatrix and mvMatrix
-  glContext.uniformMatrix4fv(PMatrixLocation, false, pMatrix);
+
 
 
 }
@@ -332,7 +317,6 @@ function initWebGL() {
     initBuffers();
     configureContext();
 		configureScene();
-    loadAllModels();
     initLights();
     mat4.identity(mvMatrix);
     //We request the first drawing when all is initialized
@@ -353,8 +337,7 @@ function loadModel(filename){
             console.info(filename + ' does not exist');
          }
         else {
-          handleOBJModel(filename, request.responseText);
-          glContext.bindVertexArray(null);
+          handleOBJModel(filename, request.responseText)
         }
       }
     }
@@ -363,16 +346,17 @@ function loadModel(filename){
 function handleOBJModel(filename, data){
   console.info(filename + ' has been retrieved from the server');
   meshTargets.push(new OBJ.Mesh(data));
-  var lastObject = meshTargets.length -1;
+  var lastObject = meshTargets.length-1;
   //Creation of the vertexArray we will use to transfer the position and color buffers
-  vertexArray = glContext.createVertexArray();
+
 
   //Binding the vertexArray as the current vertex array
-  glContext.bindVertexArray(vertexArray);
 
+  glContext.bindVertexArray(vertexArray);
   glContext.enableVertexAttribArray(vertexPositionLocation);
   vertexPositionBuffer = glContext.createBuffer();
   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexPositionBuffer);
+  console.log(meshTargets[lastObject].vertices);
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(meshTargets[lastObject].vertices), glContext.STATIC_DRAW);
   glContext.vertexAttribPointer(vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
@@ -381,49 +365,28 @@ function handleOBJModel(filename, data){
   vertexNormalBuffer = glContext.createBuffer();
   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexNormalBuffer);
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(meshTargets[lastObject].vertexNormals), glContext.STATIC_DRAW);
-  glContext.vertexAttribPointer(vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0);
+  glContext.vertexAttribPointer(vertexNormalLocation, 3, glContext.FLOAT, false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
+  var indices = new Uint16Array(meshTargets[lastObject].indices);
 
   indexBuffer = glContext.createBuffer();
   glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, new Uint16Array(meshTargets[lastObject].indices), glContext.STATIC_DRAW);
-  indexLength = meshTargets[lastObject].indices.length;
+  glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, indices, glContext.STATIC_DRAW);
+  indexLength = indices.length;
+    glContext.bindVertexArray(null);
 
   if (lastObject == 0){
     baseShapeVertices = meshTargets[lastObject].vertices;
     baseShapeNormals = meshTargets[lastObject].vertexNormals;
   }
 
-    glContext.bindVertexArray(null);
 
-}
 
-/**
- * The following code snippet creates a vertex buffer and binds the vertices to it.
- */
-function getVertexBufferWithVertices(vertices) {
-    var vBuffer = glContext.createBuffer();
-    glContext.bindBuffer(glContext.ARRAY_BUFFER, vBuffer);
-    glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(vertices), glContext.STATIC_DRAW);
-    glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-
-    return vBuffer;
-}
-
-/**
- * The following code snippet creates a vertex buffer and binds the indices to it.
- */
-function getIndexBufferWithIndices(indices) {
-    var iBuffer = glContext.createBuffer();
-    glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, iBuffer);
-    glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), glContext.STATIC_DRAW);
-    glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
-
-    return iBuffer;
 }
 
 function morph(){
+  console.log('test');
   var meshNb = meshTargets.length;
   var morphingScale = [];
   morphingScale.push( meshNb*document.getElementById("sliderHappiness").value / 100.0 );
@@ -441,19 +404,14 @@ function morph(){
     morphedVertices.push(interpolatedValue/morphingScale.length);
   }
 
-  //TODO
-  //vertexBuffer = getVertexBufferWithVertices(morphedVertices);
-  //vertexBuffersArray[0] = vertexBuffer;
-
-  vertexArray = glContext.createVertexArray();
   glContext.bindVertexArray(vertexArray);
   glContext.enableVertexAttribArray(vertexPositionLocation);
 
-  vertexBuffersArray = glContext.createBuffer();
-  glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexBuffersArray);
+  vertexPositionBuffer = glContext.createBuffer();
+  glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexPositionBuffer);
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(morphedVertices), glContext.STATIC_DRAW);
   glContext.vertexAttribPointer(vertexPositionLocation, 3, glContext.FLOAT, false, 0, 0);
-  //glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
+  glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
 
   glContext.bindVertexArray(null);
 }
