@@ -27,7 +27,6 @@ out vec2 vTexture;
 
 void main()
 {
-  gl_PointSize = 3.0;
   vec4 vertex = uMVMatrix * vec4(pos, 1.0);
   vNormal = vec3(uNMatrix * vec4(normal, 1.0));
   vec4 light = vec4(uLightPosition,1.0);
@@ -97,6 +96,7 @@ var vertexNormalBuffer = null; //Buffer that will contain the normal vertex
 
 var vertexTextcoordLocation = -1; //Location of the texture coordinates vertex within the shader
 var vertexTextcoordBuffer = null; //Buffer that will contain the textures coordinate vertex
+var ColorTextureLocation = -1;
 
 var indexBuffer = null; //Buffer that will contain the indexes
 var indexLength = -1; //Size of the indexes for the current
@@ -118,8 +118,8 @@ var MaterialSpecularLocation = null;// reference to the materialSpecular
 //Inputs
 var rotY = 0;
 var rotX = 0;
-var indices = new Array();
-var textures = new Array();
+var indices = {};
+var textures = new Array;
 var points = {};
 points["BoucheGauche"] = [0.108, -0.105, 0.309];
 points["BoucheDroite"] = [-0.108, -0.105, 0.309];
@@ -174,8 +174,10 @@ function initProgram() {
  * Destructor of the program. Unused in this case buy always prepare a way to destroy your objects
  */
 function destroy() {
-    glContext.deleteBuffer(vertexPosBuffer);
-    glContext.deleteBuffer(vertexColorBuffer);
+    glContext.deleteBuffer(vertexPositionBuffer);
+    glContext.deleteBuffer(vertexTextcoordBuffer);
+    glContext.deleteBuffer(vertexNormalBuffer);
+    glContext.deleteBuffer(indexBuffer);
     glContext.deleteProgram(program);
     glContext.deleteVertexArray(vertexArray);
 }
@@ -191,7 +193,7 @@ function initShaderParameters() {
     vertexNormalLocation = glContext.getUniformLocation(program, "normal");
 
     //Definition of the location 1 as the entry for the  texture vertex
-    vertexTextcoordLocation = glContext.getUniformLocation(program, "uColorTexture");
+    vertexTextcoordLocation = glContext.getUniformLocation(program, "vertexTexture");
 
     //Retriving the location of the PMatrix in the current program
     PMatrixLocation = glContext.getUniformLocation(program, "uPMatrix");
@@ -217,6 +219,7 @@ function initShaderParameters() {
     //Retriving the location of the materialSpecular in the current program
     MaterialSpecularLocation = glContext.getUniformLocation(program, "uMaterialSpecular");
 
+    ColorTextureLocation = glContext.getUniformLocation(program, "uColorTexture");
 }
 
 /**
@@ -267,19 +270,15 @@ function draw() {
   mat4.copy(nMatrix, mvMatrix);
   mat4.invert(nMatrix, nMatrix);
   mat4.transpose(nMatrix, nMatrix);
-
   glContext.bindVertexArray(vertexArray);
-  glContext.activeTexture(glContext.TEXTURE0);
-  glContext.uniform1i(vertexTextcoordLocation, 0);
+	glContext.activeTexture(glContext.TEXTURE0);
 
   for (var texture in indices) {
-      indexBuffer = glContext.createBuffer();
+      var indexBuffer = glContext.createBuffer();
       glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
       glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices[texture]), glContext.STATIC_DRAW);
-      glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, null);
-
-      glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
       glContext.bindTexture(glContext.TEXTURE_2D, textures[texture][0]);
+      glContext.uniform1i(ColorTextureLocation, 0);
       glContext.drawElements(glContext.TRIANGLES, indices[texture].length, glContext.UNSIGNED_SHORT, 0);
   }
   requestAnimationFrame(draw);
@@ -317,6 +316,7 @@ function initWebGL() {
     initBuffers();
     configureContext();
 		configureScene();
+    console.log(textures);
     //initLights();
     //mat4.identity(mvMatrix);
     //We request the first drawing when all is initialized
@@ -359,34 +359,32 @@ function handleLoadedModel(filename, payload){
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(payload.normals), glContext.STATIC_DRAW);
   glContext.vertexAttribPointer(vertexNormalLocation, 3, glContext.FLOAT, false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-
   glContext.enableVertexAttribArray(vertexTextcoordLocation);
   vertexTextcoordBuffer = glContext.createBuffer();
   glContext.bindBuffer(glContext.ARRAY_BUFFER, vertexTextcoordBuffer);
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(payload.textures), glContext.STATIC_DRAW);
-  glContext.vertexAttribPointer(vertexTextcoordLocation, 3, glContext.FLOAT, false, 0, 0);
+  glContext.vertexAttribPointer(vertexTextcoordLocation, 2, glContext.FLOAT, false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
   glContext.bindVertexArray(null);
-
   for (var i = 0; i < payload.indices.length; i++) {
       console.log("loading " + payload.indices[i].texture + " for " + payload.indices[i].indices.length + " faces");
       indices[payload.indices[i].texture] = payload.indices[i].indices;
       textures[payload.indices[i].texture] = new Array();
-      initTextureWithImage("../ressources/models/head/" + payload.indices[i].texture, textures[payload.indices[i].texture]);
+      initTextureWithImage(glContext, "../ressources/models/head/" + payload.indices[i].texture,   textures[payload.indices[i].texture]);
   }
   elastic();
   initLights();
 }
 
-function initTextureWithImage(sFilename, texturen) {
-    var anz = texturen.length;
-    texturen[anz] = glContext.createTexture();
-
-    texturen[anz].image = new Image();
-    texturen[anz].image.onload = function() {
-        glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
+function initTextureWithImage(glContext, sFilename, texturen) {
+    var index = texturen.length;
+    texturen[index] = glContext.createTexture();
+    var image = new Image();
+    texturen[index].image = new Image();
+    texturen[index].image.onload = function() {
+        glContext.bindTexture(glContext.TEXTURE_2D, texturen[index]);
         glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, true);
-        glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, texturen[anz].image);
+        glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, texturen[index].image);
         glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
         glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
 
@@ -395,7 +393,7 @@ function initTextureWithImage(sFilename, texturen) {
         glContext.bindTexture(glContext.TEXTURE_2D, null);
     }
 
-    texturen[anz].image.src = sFilename;
+    texturen[index].image.src = sFilename;
 
     // let's use a canvas to make textures, with by default a random color (red, green, blue)
     function rnd() {
@@ -413,12 +411,13 @@ function initTextureWithImage(sFilename, texturen) {
 
     ctx.fillRect(0, 0, 64, 64);
 
-    glContext.bindTexture(glContext.TEXTURE_2D, texturen[anz]);
+    glContext.bindTexture(glContext.TEXTURE_2D, texturen[index]);
     glContext.texImage2D(glContext.TEXTURE_2D, 0, glContext.RGBA, glContext.RGBA, glContext.UNSIGNED_BYTE, c);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.NEAREST);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, glContext.NEAREST);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+
 }
 
 function elastic() {

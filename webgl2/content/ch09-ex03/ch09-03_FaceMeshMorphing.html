@@ -144,7 +144,8 @@
                 console.log("loading " + payload.indices[i].texture + " for " + payload.indices[i].indices.length + " faces");
                 indices[payload.indices[i].texture] = payload.indices[i].indices;
                 textures[payload.indices[i].texture] = new Array();
-                initTextureWithImage("..models/head/" + payload.indices[i].texture, textures[payload.indices[i].texture]);
+                console.log(textures.length);
+                initTextureWithImage("head/" + payload.indices[i].texture, textures[payload.indices[i].texture]);
             }
             elastic();
             initLights();
