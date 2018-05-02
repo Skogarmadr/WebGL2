@@ -101,6 +101,10 @@ var ColorTextureLocation = -1;
 var indexBuffer = null; //Buffer that will contain the indexes
 var indexLength = -1; //Size of the indexes for the current
 
+var indexBufferTab = new Array();
+var indexLengthTab = new Array();
+var texColor = new Array();
+
 var pMatrix = null; //mat4 for the projection matrix
 var mvMatrix = null; //mat4 for the model view matrix
 var nMatrix = null;
@@ -270,16 +274,17 @@ function draw() {
   mat4.copy(nMatrix, mvMatrix);
   mat4.invert(nMatrix, nMatrix);
   mat4.transpose(nMatrix, nMatrix);
-  glContext.bindVertexArray(vertexArray);
-	glContext.activeTexture(glContext.TEXTURE0);
 
-  for (var texture in indices) {
-      var indexBuffer = glContext.createBuffer();
-      glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
-      glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices[texture]), glContext.STATIC_DRAW);
-      glContext.bindTexture(glContext.TEXTURE_2D, textures[texture][0]);
-      glContext.uniform1i(ColorTextureLocation, 0);
-      glContext.drawElements(glContext.TRIANGLES, indices[texture].length, glContext.UNSIGNED_SHORT, 0);
+  glContext.bindVertexArray(vertexArray);
+
+  for(var i = 0; i < indexBufferTab.length; i++)
+  {
+    glContext.uniform1i(ColorTextureLocation, 0);
+    glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBufferTab[i]);
+    glContext.bindTexture(glContext.TEXTURE_2D, texColor[i]);
+    glContext.activeTexture(glContext.TEXTURE0);
+    glContext.drawElements(glContext.TRIANGLES, indexLengthTab[i], glContext.UNSIGNED_SHORT, 0);
+
   }
   requestAnimationFrame(draw);
 }
@@ -365,13 +370,18 @@ function handleLoadedModel(filename, payload){
   glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(payload.textures), glContext.STATIC_DRAW);
   glContext.vertexAttribPointer(vertexTextcoordLocation, 2, glContext.FLOAT, false, 0, 0);
   glContext.bindBuffer(glContext.ARRAY_BUFFER, null);
-  glContext.bindVertexArray(null);
+
   for (var i = 0; i < payload.indices.length; i++) {
       console.log("loading " + payload.indices[i].texture + " for " + payload.indices[i].indices.length + " faces");
-      indices[payload.indices[i].texture] = payload.indices[i].indices;
-      textures[payload.indices[i].texture] = new Array();
-      initTextureWithImage(glContext, "../ressources/models/head/" + payload.indices[i].texture,   textures[payload.indices[i].texture]);
+      indexBuffer = glContext.createBuffer();
+      glContext.bindBuffer(glContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      glContext.bufferData(glContext.ELEMENT_ARRAY_BUFFER, new Uint16Array(payload.indices[i].indices), glContext.STATIC_DRAW);
+      indexBufferTab[i] = indexBuffer;
+      indexLength = payload.indices[i].indices.length;
+      indexLengthTab[i] = indexLength;
+      initTextureWithImage(glContext, "../ressources/models/head/" + payload.indices[i].texture,   texColor);
   }
+  glContext.bindVertexArray(null);
   elastic();
   initLights();
 }
